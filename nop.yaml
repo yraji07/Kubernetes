@@ -1,0 +1,11 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nopcommerce
+spec:
+  containers:
+    - name: nopcommerce
+      image: raji07/rajeshwari-nopcommerce:latest
+      ports:
+        - containerPort: 5000

@@ -1,5 +1,3 @@
-# Kubernetes
-
 Kubernetes tasks:
 -----------------
 ### Task 1st day 26/4/23

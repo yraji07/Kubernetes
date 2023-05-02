@@ -1,4 +1,76 @@
-Kubernetes tasks:
+### Kubernetes installation steps:
+ ----------------------------------
+## These above steps all are used in Master , Node1, Node2
+* docker 
+  ------
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
+sudo usermod -aG docker ubuntu
+exit
+re-login
+>> This url used for refernce steps[RefereHere](https://github.com/Mirantis/cri-dockerd)
+
+# Run these commands as root user
+* ### Install GO###
+
+sudo -i
+wget https://storage.googleapis.com/golang/getgo/installer_linux
+chmod +x ./installer_linux
+./installer_linux
+source ~/.bash_profile
+git clone https://github.com/Mirantis/cri-dockerd.git
+cd cri-dockerd
+mkdir bin
+go build -o bin/cri-dockerd
+mkdir -p /usr/local/bin
+install -o root -g root -m 0755 bin/cri-dockerd /usr/local/bin/cri-dockerd
+cp -a packaging/systemd/* /etc/systemd/system
+sed -i -e 's,/usr/bin/cri-dockerd,/usr/local/bin/cri-dockerd,' /etc/systemd/system/cri-docker.service
+systemctl daemon-reload
+systemctl enable cri-docker.service
+systemctl enable --now cri-docker.socket
+cd ~
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl
+sudo curl -fsSLo /etc/apt/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+  
+----------------------------------------------------------till here    
+
+### Note use these command only in master
+
+ This is oly for master 
+ * kubeadm init --pod-network-cidr "10.244.0.0/16" --cri-socket "unix:///var/run/cri-dockerd.sock"
+  
+ * exit 
+
+>> [ReferHere](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/)
+ in master
+ as a normal user (Ubuntu)
+
+* mkdir -p $HOME/.kube
+* sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+* sudo chown $(id -u):$(id -g) $HOME/.kube/config
+* kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+ 
+
+### use these commands in Node1, Node2 ( as a root user) afetr installattion we will get kubeadm output take that command and fix the cri socket network  in node 
+
+* kubeadm join 172.31.36.73:6443 --token paqndf.xvzsuv4f7mctr3xs \
+       --cri-socket "unix:///var/run/cri-dockerd.sock" \ 
+        --discovery-token-ca-cert-hash sha256:b29c8db59af2357007431c22bc3c776a908618d7fb64cbafd533db70023f06de 
+
+`above steps taken in master node successfully installation part`
+
+### Then go to master and check the nodes 
+
+` kubectl get nodes ` it shows the ip of nodes 
+
+
+### Kubernetes tasks:
 -----------------
 ### Task 1st day 26/4/23
 1) Write a Pod Spec for Spring PetClinic and nopCommerce Applications
@@ -114,3 +186,88 @@ url: https://kind.sigs.k8s.io/docs/user/quick-start/
 ### 3) Run the Spring Pet Clinic
 
 A. Its running in port http://54.176.85.248:7080 
+
+### All activities in class given task on 3 day 3
+
+https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#pod-v1-core 
+
+```yaml 
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cronjob
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    metadata:
+      name: cronjobdata
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          name: cronjobpod
+          labels: 
+            purpose: execute
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: cronjob
+              image: alpine:3
+              command: 
+                - sleep
+                - 5s 
+```
+
+* To execute the file use these cpmmands
+```
+vi demo.yaml 
+kubectl apply -f demo.yaml
+kubectl get jobs.batch
+kubectl get po
+kubectl delete -f . ( . deletes all the present files)
+ls
+rm demo.yaml
+```
+![preview](images/cronjob1.png)
+
+
+### Creating Replicasets:
+-------------------------
+vi replicas.yaml 
+kubectl apply -f replicas.yaml
+kubectl get jobs.batch
+kubectl get po
+kubectl delete -f . ( . deletes all the present files)
+ls
+rm replicas.yaml
+
+```yaml
+---
+apiVersion: apps/v1 
+kind: ReplicaSet
+metadata: 
+  name: replicas
+spec:
+  minReadySeconds: 5
+  replicas: 5
+  selector:
+    matchLabels: 
+      app: nginx
+  template:
+    metadata:
+      name: nginx pod
+      labels: 
+        app: nginx
+    spec: 
+      containers:
+        - name: nginxpod
+          image: nginx
+          ports: 
+            - containerPort: 80 
+```
+
+![preview](images/rs1.png) 
+![preview](images/rs2.png)
+
+

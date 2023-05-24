@@ -1,5 +1,0 @@
----
-resources: 
-  - deploy-svc.yaml
-  - deployment.yaml
-  - hpa.yaml

@@ -38,14 +38,14 @@ sudo apt-get update
 sudo apt-get install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
   
-----------------------------------------------------------till here    
+-------------------------   till here   ---------------------------------    
 
 ### Note use these command only in master
 
  This is oly for master 
- * kubeadm init --pod-network-cidr "10.244.0.0/16" --cri-socket "unix:///var/run/cri-dockerd.sock"
+ * ` kubeadm init --pod-network-cidr "10.244.0.0/16" --cri-socket "unix:///var/run/cri-dockerd.sock" `
   
- * exit 
+ * ` exit `
 
 >> [ReferHere](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/)
  in master
@@ -269,5 +269,763 @@ spec:
 
 ![preview](images/rs1.png) 
 ![preview](images/rs2.png)
+
+
+### task day 4 4th may23
+* Pods / Containers
+* Jobs / CronJobs
+* ReplicaSets
+* Deployment
+* Service / Headless Service
+* Volumes / Persistent Volumes / Persistent Volume Claims
+* Stateful Sets and 
+* Namespaces etc.
+
+* Pods / Containers
+A pod is the smallest execution unit in Kubernetes. A pod encapsulates one or more applications. Pods are ephemeral by nature, if a pod (or the node it executes on) fails, Kubernetes can automatically create a new replica of that pod to continue operations.
+
+
+
+### day 9 task 5
+------------------
+# 1.	Create a MySQL pod with Stateful Set with 1 replica 
+```yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-svc
+spec:
+  selector:
+    app: mysql
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: 3306
+      protocol: TCP
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql-svc
+  labels:
+    app: 'mysql'
+spec:
+  minReadySeconds: 2
+  replicas: 1
+  serviceName: mysql-svc
+  selector:
+    matchLabels:
+      app: 'mysql'
+  template:
+    metadata:
+      name: mysql-pod
+      labels:
+        app: 'mysql'
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: raji
+            - name: MYSQL_USER
+              value: raji
+            - name: MYSQL_PASSWORD
+              value: raji
+            - name: MYSQL_DATABASE
+              value: employees
+```
+
+# 2.	Create a nopCommerce deployment with 1 replica
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nopcommerce
+spec:
+  minReadySeconds: 10
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nopcommerce
+  template:
+    metadata:
+      labels:
+        app: nopcommerce
+    spec:
+      containers:
+      - name: nop
+        image: raji07/rajeshwari-nopcommerce
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 5000
+``` 
+
+# 3.	Create a Headless Service to interact with nopCommerce with MySQL 
+```yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 5000
+  selector:
+    app: nop
+    db: mysql
+
+```
+
+# 4.	Create a Load Balancer to expose the nopCommerce to External World 
+
+
+
+
+### Kubernetes (k8s) Today Activities for Practice
+----------------------------------------------
+ Task: 9th may 23
+----------------
+
+Create a Kubernetes cluster using kubeadm
+master and node 
+### Use below steps to create AKS cluster
+```yaml
+curl -L https://aka.ms/InstallAzureCli | bash
+source ~/.bashrc
+az login
+az login --tenant 00e5206b-f549-447d-8eaf-917573339f60
+az group create --name myResourceGroup --location eastus
+az aks create -g myResourceGroup -n myAKSCluster --enable-managed-identity --node-count 2 --enable-addons monitoring --enable-msi-auth-for-monitoring  --generate-ssh-keys
+sudo -i
+az aks install-cli
+exit
+az aks get-credentials --resource-group myResourceGroup --name myAKSCluster
+kubectl get nodes
+```
+
+## Deploy any application using kubectl
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: nginx-deployment
+  labels:
+    app: nginx-deploy
+spec: 
+  selector:
+    matchLabels:
+      app: nginx-deploy
+  minReadySeconds: 2
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: nginx-deploy
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.23 
+          ports:
+            - containerPort: 8080
+```
+![preview](images/cls3.png) 
+![preview](images/cls2.png)
+![preview](images/cls1.png) 
+![preview](images/cls6.png)
+![preview](images/cls5.png) 
+
+### Backup Kubernetes I.e backup etcd
+
+### List out all the pod’s running in kube system namespace 
+ 
+` kubectl get pods --namespace=kube-system ` shows all the namespaces list
+
+![preview](images/cls4.png)  
+![preview](images/cls9.png)
+
+### Write down all the steps required to make Kubernetes highly available
+
+
+### Do a rolling update and roll back 
+
+` kubectl rollout history deployment/nginx-deployment `
+update the rolling update in file shown below 
+` kubectl rollout status deployment/nginx-deployment `
+for  the same nginx deployment.yaml file we added startegy for rollout and we also changed the image version for it in ` kubectl get svc `  you will get the ip address so check the image in `it Works `  
+` vi deployment.yaml ` 
+` kubectl apply -f deployment.yaml ` 
+
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: nginx-deployment
+  labels:
+    app: nginx-deploy
+spec: 
+  selector:
+    matchLabels:
+      app: nginx-deploy
+  minReadySeconds: 2
+  replicas: 3
+  strategy: 
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25% 
+  template:
+    metadata:
+      labels:
+        app: nginx-deploy
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1
+          ports:
+            - containerPort: 80
+
+# service file 
+---
+apiVersion: v1
+kind: Service 
+metadata:
+  name: nginx-service
+spec:
+  selector: 
+    app: nginx-deploy   
+  ports: 
+    type: LoadBalancer 
+     - port: 80
+       protocol: TCP
+       targetPort: 80 
+```
+![preview](images/cls8.png) 
+![preview](images/cls7.png)
+
+or
+
+` kubectl rollout history deployment/nginx-deployment `
+update the rolling update in file shown below 
+` kubectl rollout status deployment/nginx-deployment `
+for  the same nginx deployment.yaml file we added startegy for rollout and we also changed the image version for it in ` kubectl get svc `  you will get the ip address so check the image in `it Works `  
+` vi deployment.yaml ` 
+` kubectl apply -f deployment.yaml ` 
+
+```yaml 
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spc-deploy
+  labels:
+    app: spc
+spec:
+  minReadySeconds: 3
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spc
+  template:
+    metadata:
+      labels:
+        app: spc
+    spec:
+      containers:
+        - name: spc-cont
+          image: raji07/rajispringpetclinic
+          ports :
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spc-lb
+spec:
+  selector:
+    app: spc
+  ports:
+    - name: spc
+      port: 32000
+      targetPort: 8080
+  type: LoadBalancer
+```
+![preview](images/spc2.png)
+
+![preview](images/spc3.png)
+![preview](images/spc1.png)
+
+
+### Ensure usage of secret in MySQL and configmaps
+Added configmaps and secret usage
+
+```yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-configmap
+data: 
+  MYSQL_DATABASE: Mysql
+  MYSQL_ROOT_PASSWORD: cm9vdHJvb3Q=   # rootroot
+  MYSQL_USER: cmFqaWxva2k=     #rajiloki
+  MYSQL_PASSWORD: cm9vdHJvb3Q=   # rootroot
+
+--- 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysqlcm
+spec:
+  containers:
+    - name: mysql
+      image: mysql:8
+      envFrom:
+        - configMapRef:
+            name: mysql-configmap
+            optional: false
+      ports:
+        - containerPort: 3306
+```
+![preview](images/cm1.png) 
+
+### Create a nop commerce deployment with MySQL statefulset and nop deployment 
+
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nopcommerce
+spec:
+  minReadySeconds: 10
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nopcommerce
+  template:
+    metadata:
+      labels:
+        app: nopcommerce
+    spec:
+      containers:
+      - name: nop
+        image: raji07/rajeshwari-nopcommerce
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 5000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-svc
+spec:
+  selector:
+    app: mysql
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: 3306
+      protocol: TCP
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql-svc
+  labels:
+    app: 'mysql'
+spec:
+  minReadySeconds: 2
+  replicas: 1
+  serviceName: mysql-svc
+  selector:
+    matchLabels:
+      app: 'mysql'
+  template:
+    metadata:
+      name: mysql-pod
+      labels:
+        app: 'mysql'
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: raji
+            - name: MYSQL_USER
+              value: raji
+            - name: MYSQL_PASSWORD
+              value: raji
+            - name: MYSQL_DATABASE
+              value: employees
+```
+
+
+## a. Node selector b.	Affinity  c.	Taints and tolerances 
+a)
+* First we need to se the label for the node:
+  ``kubectl label nodes <your-node-name> disktype=ssd``
+  ``kubectl label nodes  ip-172-31-47-231 app=nginx``
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  minReadySeconds: 1
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      name: nginx
+      labels:
+        app: nginx
+    spec:
+      nodeSelector:
+        app: nginx
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+```    
+```yaml
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+spec:
+  nodeSelector:
+    app: mysql
+  containers:
+    - name: mysql
+      image: mysql:8
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: rajiloki
+        - name: MYSQL_DATABASE
+          value: employees
+        - name: MYSQL_USER
+          value: rajiloki
+        - name: MYSQL_PASSWORD
+          value: rajiloki
+      ports:
+        - containerPort: 3306
+```
+### b)affinity
+------------------
+• NopCommerce
+### NopCommerce Deployment File with Affinity
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: nop-deploy
+  labels:
+    app: nopcommerce
+spec: 
+  minReadySeconds: 1
+  replicas: 2
+  selector: 
+    matchLabels: 
+      app: nopcommerce
+  strategy:
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 50%
+    type: RollingUpdate  
+  template:
+    metadata:
+      name: nop-pod
+      labels:
+        app: nopcommerce
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nodename
+                    operator: In
+                    values: 
+                      - node1
+      containers:
+        - name: nopcommerce
+          image: prakashreddy2525/nopcommerce
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+          livenessProbe:
+            tcpSocket:
+              port: 5000
+```
+• Mysql
+### Mysql Deployment File with Affinity
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deploy
+spec:
+  minReadySeconds: 3
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 50%
+  template:
+    metadata:
+      name: mysql-pod
+      labels:
+        app: mysql
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nodename
+                    operator: In
+                    values: 
+                      - node2
+      containers:
+        - name: mysql
+          image: mysql:8
+          ports:
+            - containerPort: 3306
+          envFrom:
+            - configMapRef:
+                name: mysql-configmap
+                optional: false 
+```
+### C. Taints and tolerences
+------------------------------
+• We Should have to attach taints to nodes
+• kubectl taint nodes key=value:effect
+kubectl taint nodes ip-172-31-44-59 app=web:NoSchedule
+kubectl taint nodes ip-172-31-44-149 app=db:NoSchedule
+### NopCommerce Deployment File with Tolerances
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: nop-deploy
+  labels:
+    app: nopcommerce
+spec: 
+  minReadySeconds: 1
+  replicas: 1
+  selector: 
+    matchLabels: 
+      app: nopcommerce
+  strategy:
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 50%
+    type: RollingUpdate  
+  template:
+    metadata:
+      name: nop-pod
+      labels:
+        app: nopcommerce
+    spec:
+      tolerations:
+        - key: app
+          operator: Equal
+          value: db
+          effect: NoSchedule
+      containers:
+        - name: nopcommerce
+          image: prakashreddy2525/nopcommerce
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+          livenessProbe:
+            tcpSocket:
+              port: 5000
+```
+• Mysql
+### Mysql Deployment File with Tolerances
+```yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deploy
+spec:
+  minReadySeconds: 1
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 50%
+  template:
+    metadata:
+      name: mysql-pod
+      labels:
+        app: mysql
+    spec:
+      tolerations:
+        - key: app
+          operator: Equal
+          value: nop
+          effect: NoSchedule
+      containers:
+        - name: mysql
+          image: mysql:8
+          ports:
+            - containerPort: 3306
+          envFrom:
+            - configMapRef:
+                name: mysql-configmap
+                optional: false
+```
+### 2.	Create k8s cluster with version 1.25 and run any deployment(nginx/any) and then upgrade cluster to version 1.27 
+
+done check pictures
+
+
+# Eksctl Creation
+* Lets create a EC2 instance to install aws cli, kubectl and eksctl
+### Install AWS cli
+```
+sudo apt update
+sudo apt install unzip
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+```
+* Craete a IAM user and give the administration permissions to that user.
+* And then do the `aws configure` by using the aws credentials of `AWS Access Key and AWS Secret Key`.
+### Install kubectl
+```
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+kubectl version
+```
+* Lets create key-gen `ssh-keygen`
+### create eksctl cluster
+```bash
+# for ARM systems, set ARCH to: `arm64`, `armv6` or `armv7`
+ARCH=amd64
+PLATFORM=$(uname -s)_$ARCH
+curl -sLO "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
+# (Optional) Verify checksum
+curl -sL "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_checksums.txt" | grep $PLATFORM | sha256sum --check
+tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
+sudo mv /tmp/eksctl /usr/local/bin
+```
+* Create a file cluster.yaml
+```yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: basic-cluster
+  region: ap-south-1
+nodeGroups:
+  - name: basic-eksctl
+    instanceType: t2.large take   # mediuum are  small this is autoscaled
+    desiredCapacity: 2
+    volumeSize: 20
+    ssh:
+      allow: true # will use ~/.ssh/id_rsa.pub as the default ssh key
+```
+* Lets run command `eksctl create cluster -f cluster.yaml`
+* And then run `kubectl get nodes`
+* For the autocompletion run the below command
+```bash
+source <(kubectl completion bash) # set up autocomplete in bash into the current shell, bash-completion package should be installed first.
+echo "source <(kubectl completion bash)" >> ~/.bashrc # add autocomplete permanently to your bash shell.
+```
+# Create a Module in terraform to create ubuntu 22.04 vm 
+```yaml
+resource "aws_instance" "firstinstence" {
+  for_each                    = toset(["one", "two"])
+  ami                         = "ami-02eb7a4783e7e9317" # change urs
+  instance_type               = "t2.micro"
+  key_name                    = "id_rsa"
+  associate_public_ip_address = true
+  vpc_security_group_ids      = ["sg-0968c4e2044456b8f"] # change urs
+  subnet_id                   = data.aws_subnet.first.id
+  tags = {
+    Name = "firstinstence" 
+  }
+}
+
+datasource.tf
+data "aws_vpc" "default" {
+  default = true
+}
+data "aws_subnet" "first" {
+  vpc_id            = data.aws_vpc.default.id
+  availability_zone = "${var.region}a"
+}
+}
+
+inputs.tf
+variable "region" {
+  type    = string
+  default = "ap-west-1"
+}
+provider.tf
+2:53
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "4.66.1"
+    }
+  }
+}
+provider "aws" {
+  region = "ap-west-1"
+}
 
 

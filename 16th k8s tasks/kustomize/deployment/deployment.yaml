@@ -2,29 +2,42 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-deploy
+  name: mysql-deploy
+  labels:
+    app: mysql
 spec:
-  minReadySeconds: 1
-  replicas: 2
+  minReadySeconds: 4
+  replicas: 1
   selector:
     matchLabels:
-      app: web
+      app: mysql
   strategy:
     type: RollingUpdate
-    rollingupdate:
+    rollingUpdate:
       maxSurge: 25%
       maxUnavailable: 25%
   template:
     metadata:
-      name: nginx-pod
+      name: mysql
       labels:
-        app: web
+        app: mysql
     spec:
       containers:
-        - name: nginx-con
-          image: nginx
+        - name: mysql
+          image: mysql:5.6
           ports:
-            - containerPort: 80
-
-
-            
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: rootroot
+            - name: MYSQL_DATABASE
+              value: mysql
+            - name: MYSQL_USER
+              value: laxman
+            - name: MYSQL_PASSWORD
+              value: rootroot
+          volumeMounts:
+            - name: mysql-vol
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-vol           

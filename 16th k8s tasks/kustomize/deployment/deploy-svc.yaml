@@ -2,13 +2,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-svc
+  name: mysql-svc
 spec:
   selector:
-    app: web
+    app: mysql
   ports:
-    - name: nginx
-      port: 80
-      targetPort: 80
-  type: LoadBalancer
-  
+    - name: mysql
+      port: 3306
+      protocol: TCP  

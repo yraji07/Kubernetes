@@ -2,13 +2,12 @@
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: mysql-hpa
+  name: nginx-hpa
 spec:
   maxReplicas: 10
   minReplicas: 1
   scaleTargetRef:
     apiVersion: v1
     kind: Deployment
-    name: mysql-deploy
+    name: nginx-deploy
   targetCPUUtilizationPercentage: 50
-  

@@ -1,0 +1,11 @@
+---
+resources: 
+  - deploy-svc.yaml
+  - deployment.yaml
+  - namespace.yaml
+
+namespace: test
+namePrefix: test-
+
+commonLabels: 
+  owner: raji
